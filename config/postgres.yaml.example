@@ -1,0 +1,36 @@
+# PostgreSQL connection configuration for QSA.
+# QSA is read-only — these connections are opened with readonly=True.
+#
+# Copy to config/postgres.yaml and fill in passwords. The actual file is
+# gitignored so credentials never land in source control.
+
+masd:
+  host: localhost
+  port: 5432
+  database: masd
+  user: mdc_user
+  password: "REPLACE_ME"
+  schema: masd
+  connect_timeout: 10
+  application_name: qsa-masd
+
+shdb:
+  host: localhost
+  port: 5432
+  database: shdb
+  user: udc_user
+  password: "REPLACE_ME"
+  connect_timeout: 10
+  application_name: qsa-shdb
+  # Search path includes mart + shdb; QSA reads both.
+
+mefdb:
+  host: localhost
+  port: 5432
+  database: mefdb
+  user: mef_user
+  password: "REPLACE_ME"
+  schema: mef
+  connect_timeout: 10
+  application_name: qsa-mefdb
+  # Used only to read mef.universe_stock for coverage checks.

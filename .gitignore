@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs / runtime artifacts
+*.log
+
+# Secrets / local config (do not commit)
+config/postgres.yaml
+config/qsa.yaml.local
+
+# Generated reports (commit a curated baseline manually if desired)
+reports/*.md
+reports/*.csv
+!reports/.gitkeep

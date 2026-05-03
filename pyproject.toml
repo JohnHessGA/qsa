@@ -1,0 +1,28 @@
+[project]
+name = "qsa"
+version = "0.1.0"
+description = "Qualitative Signal Audit — read-only audit of qualitative/sentiment/event data across MASD and SHDB"
+requires-python = ">=3.12"
+dependencies = [
+  "psycopg2-binary>=2.9.9",
+  "pyyaml>=6.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+qsa = "qsa.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["qsa*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

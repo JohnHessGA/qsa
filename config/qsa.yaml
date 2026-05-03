@@ -1,0 +1,45 @@
+# QSA application configuration.
+
+# Lower bound for "valid" event/article timestamps. Anything earlier is treated
+# as garbage (covers the 0001-12-31 BC Finnhub case and similar).
+min_valid_date: "2000-01-01"
+
+# Future-date tolerance: how many days past today is allowed before a date is
+# flagged as "future". Insider transaction dates and news publish dates should
+# never be in the future.
+future_date_tolerance_days: 1
+
+# Staleness thresholds per cadence (days since most recent observation). A
+# stream past its threshold is flagged "stale".
+staleness_thresholds_days:
+  daily:   5     # 1d cadence (allow weekend slack)
+  weekly:  14    # 1w cadence
+  monthly: 45    # 1m cadence
+  quarterly: 130 # 1q cadence
+
+# Coverage tier thresholds against the MEF stock universe (305 symbols).
+# Tables expected to be per-symbol broad use these tiers; tables that are
+# inherently sparse (sec_enforcement, congress_trades, cfpb_complaints) get
+# the `sparse_expected` tier and only get an INFO finding.
+mef_coverage:
+  warn_below_pct:     50
+  critical_below_pct: 25
+
+# Tables explicitly marked as deprecated. Reported with a warning regardless
+# of content; consumer-grep walks AFT repos to surface live consumers.
+deprecated_tables:
+  - schema: shdb
+    table:  insider_activity_signals
+    replacement: shdb.insider_conviction_signals
+    reason: "Legacy/contaminated — mixes grants with conviction transactions."
+
+# Repos to grep for live consumers of deprecated tables.
+consumer_grep_repos:
+  - ~/repos/mef
+  - ~/repos/ccw
+  - ~/repos/cia
+  - ~/repos/iraguard
+  - ~/repos/rse
+  - ~/repos/das
+  - ~/repos/xpm
+  - ~/repos/udc

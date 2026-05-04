@@ -33,6 +33,34 @@ deprecated_tables:
     replacement: shdb.insider_conviction_signals
     reason: "Legacy/contaminated — mixes grants with conviction transactions."
 
+  # Finnhub-derived tables — provider RETIRED 2026-05-03 (config/providers/
+  # finnhub_news.yaml in MDC). Listed here so R006 staleness and R008
+  # coverage rules treat them as legacy, not as broken active sources.
+  - schema: masd
+    table:  finnhub_news_articles
+    replacement: alphavantage_news_sentiment_1d / news_av_ticker_sentiment
+    reason: "RETIRED 2026-05-03 — Finnhub provider retired; news superseded by AlphaVantage."
+  - schema: masd
+    table:  finnhub_news_article_symbols
+    replacement: news_av_ticker_sentiment
+    reason: "RETIRED 2026-05-03 — Finnhub provider retired."
+  - schema: masd
+    table:  finnhub_stocks_insider_txn
+    replacement: fmp_stocks_insider_trades / sec_edgar_filing_events (Form 4)
+    reason: "RETIRED 2026-05-03 — Finnhub provider retired; insider data superseded by FMP + SEC EDGAR."
+  - schema: masd
+    table:  finnhub_stocks_insider_mspr_1m
+    replacement: insider_conviction_signals
+    reason: "RETIRED 2026-05-03 — Finnhub MSPR retired; smooth proxy derivable from insider_conviction_signals."
+  - schema: shdb
+    table:  insider_mspr_1m
+    replacement: insider_conviction_signals
+    reason: "RETIRED 2026-05-03 — built from frozen Finnhub MSPR; no live consumers."
+  - schema: shdb
+    table:  insider_mspr_signals
+    replacement: insider_conviction_signals
+    reason: "RETIRED 2026-05-03 — derived from frozen Finnhub MSPR."
+
 # Repos to grep for live consumers of deprecated tables.
 consumer_grep_repos:
   - ~/repos/mef

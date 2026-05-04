@@ -56,12 +56,30 @@ def _connection_for(db: str, masd, shdb, mefdb):
     return {"masd": masd, "shdb": shdb, "mefdb": mefdb}[db]
 
 
+def _build_deprecated_set(app_cfg: dict[str, Any]) -> set[tuple[str, str]]:
+    """Return the set of (schema, table) tuples flagged as deprecated/retired
+    in qsa.yaml. Tables in this set are EXEMPT from R006 staleness — their
+    staleness is intentional, not a defect, and reporting it as an active-
+    source issue creates noise on every run."""
+    out: set[tuple[str, str]] = set()
+    for entry in app_cfg.get("deprecated_tables") or []:
+        schema = entry.get("schema")
+        table = entry.get("table")
+        if schema and table:
+            out.add((schema, table))
+    return out
+
+
 def check(*, masd, shdb, mefdb, app_cfg: dict[str, Any]) -> list[Finding]:
     findings: list[Finding] = []
     thresholds = app_cfg["staleness_thresholds_days"]
+    deprecated = _build_deprecated_set(app_cfg)
     today = date.today()
 
     for db, schema, table, col, cadence in TARGETS:
+        # Skip retired/deprecated tables — R007 reports them, not R006.
+        if (schema, table) in deprecated:
+            continue
         conn = _connection_for(db, masd, shdb, mefdb)
         # Tables without a single date column (e.g. mspr year+month) get a
         # synthesized one. Caller passes None; we synth with make_date.

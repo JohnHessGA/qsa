@@ -71,8 +71,22 @@ def _connection_for(db: str, masd, shdb, mefdb):
     return {"masd": masd, "shdb": shdb, "mefdb": mefdb}[db]
 
 
+def _build_deprecated_set(app_cfg: dict[str, Any]) -> set[tuple[str, str]]:
+    """(schema, table) tuples flagged retired/deprecated in qsa.yaml. R008
+    skips them — coverage stats on a retired source aren't useful, and they
+    create noise in the critical-coverage bucket."""
+    out: set[tuple[str, str]] = set()
+    for entry in app_cfg.get("deprecated_tables") or []:
+        schema = entry.get("schema")
+        table = entry.get("table")
+        if schema and table:
+            out.add((schema, table))
+    return out
+
+
 def check(*, masd, shdb, mefdb, app_cfg: dict[str, Any]) -> list[Finding]:
     findings: list[Finding] = []
+    deprecated = _build_deprecated_set(app_cfg)
     universe = _load_mef_universe(mefdb)
     universe_n = len(universe)
     cov_cfg = app_cfg["mef_coverage"]
@@ -84,6 +98,10 @@ def check(*, masd, shdb, mefdb, app_cfg: dict[str, Any]) -> list[Finding]:
     sym_array = "{" + ",".join(s.replace("\\", "\\\\").replace(",", "\\,") for s in universe) + "}"
 
     for db, schema, table, col, expected, label in TARGETS:
+        # Skip retired/deprecated tables — coverage on a retired source is
+        # not actionable and inflates the critical bucket.
+        if (schema, table) in deprecated:
+            continue
         conn = _connection_for(db, masd, shdb, mefdb)
         sql = f"""
             SELECT COUNT(DISTINCT {col})

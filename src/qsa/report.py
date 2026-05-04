@@ -17,6 +17,45 @@ SEVERITY_BADGE = {
     "info":     "🟢 INFO",
 }
 
+# Categorical buckets — orthogonal to severity. Built so the user can scan
+# the summary and see "what needs attention vs what's just a known structural
+# property of the data."
+#
+#   active     — likely a real data defect (invalid rows, missing data,
+#                duplicate keys, future dates). Action recommended.
+#   monitor    — staleness or thin-coverage; data is fine but worth watching.
+#   retired    — table marked deprecated/retired in qsa.yaml. Reported once
+#                so the listing is visible, but should not be treated as an
+#                active failure.
+#   structural — known by-design NULLs (e.g. SEC API rows for individuals).
+#                Reported under INFO severity now that R003 honours
+#                entity_type — kept in the report so consumers can see the
+#                shape of the data, not because it's broken.
+#   coverage   — R008/R009 — population stats per table against the MEF
+#                universe. Mostly informational.
+CATEGORIES = ("active", "monitor", "retired", "structural", "coverage")
+
+
+def _category_for(finding) -> str:
+    """Derive the categorical bucket from rule + severity."""
+    rule = finding.rule_id
+    sev = finding.severity
+    if rule == "R007-deprecated-tables":
+        return "retired"
+    if rule == "R008-mef-coverage":
+        return "coverage"
+    if rule == "R009-thin-coverage":
+        return "coverage"
+    if rule == "R006-staleness":
+        return "monitor"
+    if rule == "R003-missing-symbols" and sev == "info":
+        # info-severity R003 means the entity_type filter explained most
+        # of the NULLs as structural.
+        return "structural"
+    if sev in ("critical", "warning"):
+        return "active"
+    return "structural"
+
 
 def _format_sample(sample: list) -> str:
     if not sample:
@@ -47,13 +86,34 @@ def render_markdown(findings: list[Finding], *, generated_at: datetime) -> str:
     lines.append("This report identifies data-quality issues; it does not modify any database.")
     lines.append("")
 
-    # Summary
+    # Severity summary
     lines.append("## Summary")
     lines.append("")
     lines.append(f"- 🔴 Critical: **{counts.get('critical', 0)}**")
     lines.append(f"- 🟡 Warning:  **{counts.get('warning', 0)}**")
     lines.append(f"- 🟢 Info:     **{counts.get('info', 0)}**")
     lines.append(f"- Total:      **{len(findings)}**")
+    lines.append("")
+
+    # Categorical summary — orthogonal to severity. Lets the reader see
+    # "active defects vs monitoring vs retired noise vs coverage stats"
+    # at a glance.
+    cat_counts: Counter = Counter(_category_for(f) for f in findings)
+    cat_labels = {
+        "active":     "🛠  **Active defects**     — likely real issues, action recommended",
+        "monitor":    "👀 **Monitoring**           — staleness / thin coverage; watch but not broken",
+        "retired":    "🗄  **Retired sources**     — formally retired; tracked here for visibility",
+        "structural": "📐 **Structural / by-design** — known correct NULLs (e.g. individual defendants)",
+        "coverage":   "📊 **Coverage info**         — population stats vs the MEF universe",
+    }
+    lines.append("### By category")
+    lines.append("")
+    for cat in CATEGORIES:
+        n = cat_counts.get(cat, 0)
+        if n == 0 and cat in ("active", "monitor"):
+            lines.append(f"- {cat_labels[cat]}: **{n}** ✅")
+        else:
+            lines.append(f"- {cat_labels[cat]}: **{n}**")
     lines.append("")
 
     # By rule

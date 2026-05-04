@@ -8,7 +8,7 @@ patterns the next builder (`news_confidence_1d`) should follow.
 ## TL;DR
 
 - sec_penalties works clean through `udc harvest --builder sec_penalties …`
-  on the normal path. Telemetry, validation, idempotency all confirmed.
+  on the normal path. Telemetry, validation, rebuild-safety all confirmed.
 - Mart-builder conventions are stable and well-established. The wide-pivot
   shape on `(symbol, bar_date)` with LATERAL forward-fill from
   different-cadence sources is exactly what migrate-per-source needs.
@@ -58,10 +58,13 @@ the upsert refreshes it on re-harvest, so future enrichment can backfill
 without a schema change. Not a blocker for this preflight — just a known
 upstream gap.
 
-Idempotency: re-running the same harvest produced the same 18 rows, no
-duplicates, no telemetry breakage. ON CONFLICT DO UPDATE refreshes
-`entity_type` / `entity_role` / `cik` on every re-run, so newly-resolved
-entity values flow through automatically.
+Rebuild-safety: re-running the same harvest over the same source window
+produced the same 18 derived rows, with no duplicates, no drift, and no
+telemetry breakage. ON CONFLICT DO UPDATE refreshes `entity_type` /
+`entity_role` / `cik` on every re-run, so newly-resolved entity values
+flow through automatically. The derived rows themselves are
+rebuildable from MASD — "idempotent" is a property of raw collection
+(don't re-fetch externally), not of derived-table re-runs.
 
 Builder code (`src/udc/builders/shdb/other.py:1362`) follows the canonical
 Layer 1 cleaned pattern unchanged: `build_validation_clauses` →
@@ -83,7 +86,10 @@ Conventions worth committing to memory before writing
    {_ON_CONFLICT_SET}`.
 3. **Single SQL pass.** No Python loops, no temp tables. The whole upsert
    is one round-trip inside `shdb_transaction(db_config)`.
-4. **Idempotent upsert** on a stable PK (mart's is `(symbol, bar_date)`).
+4. **Rebuild-safe upsert** on a stable PK (mart's is `(symbol, bar_date)`).
+   Re-running the same builder over the same source window produces the
+   same derived rows with no duplicates or drift; the table itself is
+   rebuildable from upstream at any time.
 5. **Forward-fill via LATERAL** when joining different-cadence sources
    (quarterly valuations → daily price, biweekly short interest → daily
    price). The pattern is `LEFT JOIN LATERAL (SELECT … FROM tbl WHERE
@@ -135,7 +141,9 @@ For `news_confidence_1d` this means:
   - `ow.udc_builder` for status / rows_upserted / rows_rejected / duration
   - `shdb.news_confidence_1d` for distribution sanity (no all-zero, no
     all-100, expected NULL pattern for symbols with no news)
-  - re-run the same range to confirm idempotency (no row count drift)
+  - re-run the same range to confirm rebuild-safety (same row count, no
+    drift) — the derived table is rebuildable from upstream, but a single
+    builder's reruns must be deterministic for the same source window
 
 That's the same pattern this preflight just used for sec_penalties.
 It's lightweight, doesn't require a test-DB fixture, and is the
@@ -194,7 +202,7 @@ Two optional follow-ups (not gating):
 4. `tests/test_news_confidence.py` — pure-function tests for each sub-score
    in the rubric.
 5. Run `udc harvest --builder news_confidence_1d --from 2026-04-15 --to
-   2026-05-03` end-to-end. Verify telemetry + distribution + idempotency
+   2026-05-03` end-to-end. Verify telemetry + distribution + rebuild-safety
    exactly as this preflight did for sec_penalties.
 6. Open PR with the harvest output + telemetry rows in the description.
 

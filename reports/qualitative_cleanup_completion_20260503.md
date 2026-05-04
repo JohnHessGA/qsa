@@ -1,30 +1,31 @@
 # AFT Qualitative-Signal Cleanup — Completion Note
 
-*Generated: 2026-05-03. Final artefact of the qualitative-cleanup sequence
-that began with `qsa_audit_20260503.md` and ran across MDC, MASD, UDC,
-SHDB, and QSA.*
+*Generated: 2026-05-03. Final-final update: 2026-05-04 after the
+short_interest scheduling fix landed and the lone monitoring item closed.*
 
-This note records the final clean baseline and the decisions that got us
+*This note records the final clean baseline and the decisions that got us
 here. It is intentionally short — the deeper rationale for each step
-already lives in the per-round commit messages and prior reports.
+already lives in the per-round commit messages and prior reports.*
 
 ---
 
-## Final QSA category counts
+## Final QSA category counts (2026-05-04, post short_interest recovery)
 
 ```
 🛠  Active defects        0   ✅
-👀 Monitoring             1   (Polygon short_interest scheduling — known)
+👀 Monitoring             0   ✅
 🗄  Retired sources      14   (Finnhub + 3 retired sources — known)
 📐 Structural / by-design 5   (SEC API + EDGAR — explained NULLs)
 📊 Coverage info         38   (informational)
 
-Total findings:          58   (severity 6 critical / 16 warning / 36 info)
+Total findings:          57
 ```
 
-The 6 critical and 16 warning entries all live in the *Coverage* or
-*Retired* buckets. None is an active defect. **Zero active defects** is
-the first time the audit has hit that state.
+**Both Active and Monitoring are zero.** The 14 retired-source and 38
+coverage-info entries are informational by design. The 5 structural
+findings are explained NULLs (SEC API individuals; SEC EDGAR Form 4
+insiders). For the first time, every single finding in the audit has a
+known explanation.
 
 ---
 
@@ -142,29 +143,47 @@ schema bumps.
 
 ---
 
-## Remaining monitoring item
+## Polygon short_interest — closed 2026-05-04
 
-**`massive/short_interest` — last real data 2026-02-27 (65+ days).**
+The lone monitoring item from the 2026-05-03 baseline has been resolved.
 
-Diagnosed in `polygon_short_interest_investigation_20260503.md`. Not a
-provider outage / endpoint move / entitlement change / MDC code
-regression — the collector queries `settlement_date=today` while FINRA
-publishes short-interest reports with a ~12 calendar-day lag, and
-nothing currently re-runs collection for those placeholder dates once
-FINRA publishes.
+Root cause was a publication-lag mismatch: the daily collector queried
+`settlement_date=today` while FINRA publishes short-interest reports
+~T+8 business days after settlement; nothing re-ran collection for the
+placeholder dates once FINRA published.
 
-Two reasonable fix shapes documented in the investigation report:
+Fix shipped (`JohnHessGA/mdc` commit `e430282`): new top-level CLI
+`mdc retry-placeholders` that walks `masd.sys_raw_file` for
+placeholder rows in a `[today − max_age, today − lag]` window, re-runs
+the provider's `collect()` per candidate date, and overwrites the
+placeholder when real data lands. Conservative default lag floor
+(12 calendar days) and 60-day max-age cap; idempotent; only candidates
+verified as placeholders get retried.
 
-- **Option A (preferred)** — `mdc backfill --retry-placeholders` pass
-  that walks recent `__mdc_no_data__` files and re-runs the per-date
-  collector if the source now has data. Generic; reusable for any future
-  publication-lag dataset.
-- **Option B** — query `settlement_date = today − 14 days` directly. Simpler
-  but couples this dataset's filename convention to its publication
-  cadence in a way no other dataset uses.
+One-off recovery run results:
 
-Estimated effort: ~50 lines + tests + a one-off backfill run for the
-~65 missed days. Self-contained and ready whenever convenient.
+  Candidates in window:    49
+  Recovered (real data):    3   (2026-03-13, 2026-03-31, 2026-04-15)
+  Still empty:             46   (non-settlement dates, correctly so)
+  Failed:                   0
+
+After ingest + UDC SHDB refresh:
+
+  masd.massive_stocks_short_int  MAX(settlement_date)  2026-02-27 → 2026-04-15
+  shdb.stock_short_interest      MAX(settlement_date)  2026-02-27 → 2026-04-15
+
+QSA `R006-staleness` cadence label for `stock_short_interest` was
+tuned from `daily` (5d threshold) to a new `bi_monthly_lagged` cadence
+(21d threshold) so the rule no longer fires on dates that are within
+FINRA's normal publication-lag window. This mirrors MDC's
+`no_data_alerting` rule for the same dataset.
+
+Outstanding question for the long term: **scheduling**. The recovery
+command is operator-driven for now. A future cron entry would invoke
+it daily for any (provider, dataset) pair with a known publication-lag
+pattern. We chose to defer cron until we see one full cycle of
+operator-driven runs against this and any other dataset that benefits
+from the pattern. No action required to start the next phase.
 
 ---
 
@@ -202,8 +221,10 @@ all three.
 
 ## Reference — final commit hashes
 
-- `JohnHessGA/mdc`: `6a2d685` (docs catch-up after `a0c3973` filer-type tagging)
+- `JohnHessGA/mdc`: `e430282` (mdc retry-placeholders + short_interest recovery)
 - `JohnHessGA/udc`: `f6e823a` (sec_penalties entity metadata propagation)
-- `JohnHessGA/qsa`: `1481d9f` (post-UDC verification audit)
+- `JohnHessGA/qsa`: this commit (R006 cadence tuning for short_interest +
+  post-recovery audit + this updated completion note)
 
-The qualitative cleanup phase is closed. Ready for design.
+The qualitative cleanup phase is closed. **Active: 0, Monitoring: 0.**
+Ready for design.

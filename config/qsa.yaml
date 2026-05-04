@@ -16,6 +16,12 @@ staleness_thresholds_days:
   weekly:  14    # 1w cadence
   monthly: 45    # 1m cadence
   quarterly: 130 # 1q cadence
+  # FINRA short-interest reports settle ~24x/year (15th + end-of-month) and
+  # publish ~T+8 business days later. A "fresh" record is therefore 8-14
+  # days old by definition. Mirror MDC's no_data_alerting rule for
+  # massive/short_interest (21/45) so QSA R006 doesn't fire on dates that
+  # are within normal publication-lag distance.
+  bi_monthly_lagged: 21
 
 # Coverage tier thresholds against the MEF stock universe (305 symbols).
 # Tables expected to be per-symbol broad use these tiers; tables that are

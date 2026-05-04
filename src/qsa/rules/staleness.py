@@ -41,7 +41,11 @@ TARGETS: list[tuple[str, str, str, str, str]] = [
     ("shdb", "shdb", "factor_news_tone_1d",             "obs_date",       "daily"),
     ("shdb", "shdb", "sentiment_feargreed_1d",          "obs_date",       "daily"),
     ("shdb", "shdb", "sentiment_news_tone_1d",          "obs_date",       "daily"),
-    ("shdb", "shdb", "stock_short_interest",            "settlement_date","daily"),
+    # Bi-monthly FINRA settlement + ~T+8 business-day publication lag —
+    # see config/qsa.yaml `bi_monthly_lagged` threshold (21d). Daily-
+    # threshold would fire constantly even when the data is fresh by
+    # publication standards.
+    ("shdb", "shdb", "stock_short_interest",            "settlement_date","bi_monthly_lagged"),
     ("shdb", "shdb", "stock_short_volume_1d",           "report_date",    "daily"),
     ("shdb", "shdb", "insider_conviction_signals",      "bar_date",       "daily"),
     ("shdb", "shdb", "insider_trades",                  "bar_date",       "daily"),

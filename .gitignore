@@ -18,11 +18,8 @@ venv/
 # Logs / runtime artifacts
 *.log
 
-# Secrets / local config (do not commit)
+# Secrets / local config — DB passwords. Nothing else should be excluded
+# from git: per-project policy is "everything except API keys, usernames,
+# and passwords gets pushed to github."
 config/postgres.yaml
 config/qsa.yaml.local
-
-# Generated reports (commit a curated baseline manually if desired)
-reports/*.md
-reports/*.csv
-!reports/.gitkeep

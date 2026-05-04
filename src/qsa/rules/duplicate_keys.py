@@ -1,8 +1,29 @@
-"""R004 — Duplicate natural keys.
+"""R004 — Duplicate natural keys for daily-aggregate tables.
 
-For curated SHDB tables that should have one row per (symbol, date), check
-that the natural key is in fact unique. Duplicate rows are a strong signal
-that ingestion is double-applying or that a builder lacks an upsert.
+Checks the *conceptual* daily-aggregate invariant: tables that are intended
+to hold one row per (symbol, date) should not have multiple rows for the
+same pair. A violation is a strong signal that the curation builder is
+double-applying or missing an upsert.
+
+⚠️  This rule is for tables whose conceptual key is per-day-per-symbol —
+    daily aggregates / signals / 1d snapshots. **Article-level tables
+    must NOT appear in TARGETS** because their natural key is
+    per-article, and (symbol, obs_date) duplicates are *expected* — N
+    articles per symbol per day. Adding such a table here generates a
+    false-positive equal to (article_rows − distinct_pairs).
+
+Article-level tables to keep OUT of TARGETS (verified 2026-05-03):
+  - shdb.news_av_ticker_sentiment    PK (article_url_hash, symbol)
+  - shdb.stock_news_1d               PK (security_id, article_id)
+  - masd.alphavantage_news_ticker_sentiment, similar shape
+
+For each daily-aggregate table the configured `key_columns` should match
+the table's conceptual key, which is usually but not always the database
+PK. The security_id-keyed tables below are an example: the DB PK is
+(security_id, settlement_date), but the *conceptual* invariant we want
+to test is "one symbol → one row per day," so we check (symbol, …).
+That correctly catches the case where two security_ids ever resolve to
+the same current symbol on the same day.
 """
 
 from __future__ import annotations
@@ -13,14 +34,24 @@ from qsa.finding import Finding
 
 # (database, schema, table, [key_columns], severity)
 TARGETS: list[tuple[str, str, str, list[str], str]] = [
+    # Daily news/event sentiment aggregates.
     ("shdb", "shdb", "news_ticker_sentiment_1d",     ["symbol", "obs_date"], "warning"),
     ("shdb", "shdb", "symbol_event_sentiment_1d",    ["symbol", "obs_date"], "warning"),
-    ("shdb", "shdb", "news_av_ticker_sentiment",     ["symbol", "obs_date"], "warning"),
-    ("shdb", "shdb", "stock_news_1d",                ["symbol", "bar_date"], "info"),
+    # Daily insider signal aggregates.
     ("shdb", "shdb", "insider_conviction_signals",   ["symbol", "bar_date"], "warning"),
     ("shdb", "shdb", "insider_mspr_signals",         ["symbol", "bar_date"], "warning"),
+    # Daily short-interest / short-volume snapshots. PK uses security_id;
+    # we still check the (symbol, date) projection because that's the
+    # conceptual invariant for downstream per-symbol consumers.
     ("shdb", "shdb", "stock_short_interest",         ["symbol", "settlement_date"], "warning"),
     ("shdb", "shdb", "stock_short_volume_1d",        ["symbol", "report_date"], "warning"),
+
+    # NOTE: news_av_ticker_sentiment and stock_news_1d are INTENTIONALLY
+    # absent — both are article-level tables whose actual PKs include an
+    # article identifier. (symbol, obs_date) is correctly non-unique on
+    # them and represents article volume, not duplication. The daily
+    # aggregate of news_av_ticker_sentiment is news_ticker_sentiment_1d
+    # (already in TARGETS above).
 ]
 
 

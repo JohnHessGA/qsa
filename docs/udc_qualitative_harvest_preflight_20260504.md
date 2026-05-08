@@ -174,7 +174,7 @@ already answers cleanly.
 
 The roll-up label should be **data breadth/freshness**, not prediction
 trust — same framing carried over from the B1 rubric design (per
-`reports/data_confidence_rubric_v1_20260504.md`).
+`docs/data_confidence_rubric_v1_20260504.md`).
 
 ## 5. Changes needed before the `news_confidence_1d` PR
 
@@ -214,8 +214,8 @@ addition.
 
 **Reference**
 
-- B1 rubric: `reports/data_confidence_rubric_v1_20260504.md`
-- B2 mart design: `reports/canonical_qualitative_mart_design_v1_20260504.md`
+- B1 rubric: `docs/data_confidence_rubric_v1_20260504.md`
+- B2 mart design: `docs/canonical_qualitative_mart_design_v1_20260504.md`
 - Mart-builder examples: `~/repos/udc/src/udc/builders/mart/{stock_equity_daily,stock_etf_daily}.py`
 - UDC core principles: `~/repos/udc/CLAUDE.md` § Core Principles
 - sec_penalties builder (post-propagation): `~/repos/udc/src/udc/builders/shdb/other.py:1362`

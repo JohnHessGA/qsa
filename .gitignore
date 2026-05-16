@@ -17,8 +17,10 @@ build/
 # Logs / runtime artifacts
 *.log
 
-# Secrets / local config — DB passwords. Nothing else should be excluded
-# from git: per-project policy is "everything except API keys, usernames,
-# and passwords gets pushed to github."
-config/postgres.yaml
+# Secrets / local config — DB passwords. AFT convention: filename
+# includes "secrets". See ~/repos/notes/secrets-conventions.md.
+# Nothing else should be excluded from git: per-project policy is
+# "everything except API keys, usernames, and passwords gets pushed
+# to github."
+*.secrets.yaml
 config/qsa.yaml.local

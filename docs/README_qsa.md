@@ -26,8 +26,9 @@ quality over time.
   - `config/qsa.yaml` — staleness thresholds per cadence, MEF coverage tiers,
     deprecated-table list with replacement pointers, repos to grep for live
     consumers. Checked into the repo.
-  - `config/postgres.yaml` — DB credentials. Gitignored; see
-    `config/postgres.yaml.example`.
+  - `config/postgres.secrets.yaml` — DB credentials. Gitignored; see
+    `config/postgres.secrets.yaml.example` and
+    `~/repos/notes/secrets-conventions.md`.
 - **Filesystem (read-only) for R007 consumer-grep:** `~/repos/{mef, ccw, cia,
   iraguard, rse, das, xpm, udc}` per `consumer_grep_repos` in `qsa.yaml`.
 
@@ -85,8 +86,8 @@ qsa audit qualitative [--output PATH] [--csv PATH] [--rules R001,R007,...] [--st
 
 ## Config
 
-- `config/postgres.yaml` — credentials for `masd`, `shdb`, `mefdb`
-  (gitignored; see `config/postgres.yaml.example`).
+- `config/postgres.secrets.yaml` — credentials for `masd`, `shdb`, `mefdb`
+  (gitignored; see `config/postgres.secrets.yaml.example`).
 - `config/qsa.yaml` — application knobs:
   - `min_valid_date`, `future_date_tolerance_days` for R001/R002.
   - `staleness_thresholds_days` per cadence — `daily`, `weekly`, `monthly`,

@@ -2,8 +2,11 @@
 
 Two YAML files live under `config/`:
 
-- `config/postgres.yaml` — DB credentials (gitignored).
-- `config/qsa.yaml`      — application settings (thresholds, deprecated tables).
+- `config/postgres.secrets.yaml` — DB credentials (gitignored).
+- `config/qsa.yaml`              — application settings (thresholds, deprecated tables).
+
+Credentials live exclusively in the YAML file. No env-var fallback —
+see ``~/repos/notes/secrets-conventions.md``.
 """
 
 from __future__ import annotations
@@ -34,11 +37,11 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 
 def load_postgres_config() -> dict[str, dict[str, Any]]:
-    cfg = _load_yaml(repo_root() / "config" / "postgres.yaml")
+    cfg = _load_yaml(repo_root() / "config" / "postgres.secrets.yaml")
     for required in ("masd", "shdb", "mefdb"):
         if required not in cfg:
             raise ConfigError(
-                f"config/postgres.yaml missing required section: {required}"
+                f"config/postgres.secrets.yaml missing required section: {required}"
             )
     return cfg
 

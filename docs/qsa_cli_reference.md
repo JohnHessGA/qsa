@@ -7,7 +7,7 @@ and one audit kind (`qualitative`). Everything is read-only.
 
 ```bash
 cd ~/repos/qsa
-source venv/bin/activate
+source .venv/bin/activate
 pip install -e .            # editable install on first use
 qsa --help
 ```

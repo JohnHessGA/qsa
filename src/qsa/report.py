@@ -182,7 +182,7 @@ def render_markdown(findings: list[Finding], *, generated_at: datetime) -> str:
     )
     lines.append("")
     lines.append("```")
-    lines.append("cd ~/repos/qsa && source venv/bin/activate")
+    lines.append("cd ~/repos/qsa && source .venv/bin/activate")
     lines.append("qsa audit qualitative")
     lines.append("```")
     lines.append("")

@@ -13,6 +13,7 @@ rule issues a write of any kind.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +31,19 @@ def _report_path(generated_at: datetime, suffix: str) -> Path:
     """
     base = artifacts_dir() / generated_at.strftime("%Y") / generated_at.strftime("%m")
     return base / f"qsa_audit_{generated_at.strftime('%Y%m%d')}.{suffix}"
+
+
+def _audit_recency_key(path: Path) -> tuple[str, float]:
+    """Sort key for ranking audit reports newest-first.
+
+    Ranks by the YYYYMMDD date embedded in the filename (the audit date),
+    not lexicographic filename order — so `qsa_audit_20260527.md` beats
+    `qsa_audit_post_tuning_20260503.md`. Files that share a date are broken
+    by mtime. A name with no parseable date sorts oldest.
+    """
+    dates = re.findall(r"(\d{8})", path.stem)
+    date_str = dates[-1] if dates else ""
+    return (date_str, path.stat().st_mtime)
 
 
 class _FullHelpArgumentParser(argparse.ArgumentParser):
@@ -95,7 +109,7 @@ def _run_status(args: argparse.Namespace) -> int:
 
     reports_dir = artifacts_dir()
     audits = (
-        sorted(reports_dir.rglob("qsa_audit_*.md"), key=lambda p: p.name, reverse=True)
+        sorted(reports_dir.rglob("qsa_audit_*.md"), key=_audit_recency_key, reverse=True)
         if reports_dir.is_dir() else []
     )
     if audits:

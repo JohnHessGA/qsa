@@ -87,12 +87,13 @@ data quality over time.
 
 ## Schedule
 
-- **Ad-hoc** (default). Operator runs `qsa audit qualitative` before/after
-  qualitative-pipeline changes; the resulting dated report lands under
-  `<artifacts_dir>/YYYY/MM/qsa_audit_*` as a baseline.
-- No cron entry in v1. If cadence is added later, the cron should call the
-  CLI directly (`qsa audit qualitative ...`) per the global standard — no
-  wrapper script with logic.
+- **Weekly cron** — `Sat 06:00 America/New_York`, via the standard plumbing
+  wrapper `scripts/cron_run.sh audit qualitative` (activates the venv and
+  execs `qsa "$@"`; no decision logic). Output and exit code as usual; the
+  exit code lets the run gate on critical-clean.
+- **Ad-hoc** — operators also run `qsa audit qualitative` by hand before/after
+  pipeline changes; the dated report lands under
+  `<artifacts_dir>/YYYY/MM/qsa_audit_*` either way.
 
 ## CLI surface
 

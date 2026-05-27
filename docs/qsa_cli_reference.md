@@ -123,6 +123,4 @@ All in `config/qsa.yaml`:
 
 - Write to any database (connections are `readonly=True`).
 - Send notifications (no email, no SMS, no Overwatch event rows).
-- Run on cron in v1 — operator-driven, dated reports written under
-  `artifacts_dir` (default `/mnt/aftdata/qsa/artifacts`).
 - Score, rank, or recommend trades. Findings are descriptive only.

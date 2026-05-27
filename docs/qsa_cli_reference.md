@@ -114,6 +114,10 @@ All in `config/qsa.yaml`:
   listed in `consumer_grep_repos`.
 - `consumer_grep_repos` — paths walked by R007's filesystem grep; no DB
   calls, just textual `schema.table` matches.
+- `ohlc_integrity` — R010 OHLC price-bar integrity (quantitative): `targets`
+  (mart `schema.table` + `asset_type`), `low_factor` (dropped-digit low,
+  critical), `high_factor` / `range_factor` (high spike / wide range,
+  warning), `max_samples`. Scoped to `shdb.v_investable_universe_active`.
 
 ## Things QSA will NOT do
 

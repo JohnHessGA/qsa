@@ -133,6 +133,45 @@ low to support analysis even if MEF-coverage isn't the right framing.
 - **Severity:** warning, info for sparse-expected tables.
 - **Source:** `src/qsa/rules/thin_coverage.py`
 
+### R010 — ohlc-integrity (quantitative)
+
+QSA's first **quantitative** rule. Scans the curated mart price tables for the
+**AFT investable universe** of stocks and ETFs and flags bars whose OHLC
+values are impossible or implausible. Restricting to
+`shdb.v_investable_universe_active` is what keeps the plausibility checks
+false-positive-free — the noise that would otherwise dominate is all sub-$5
+micro-caps that are not in the AFT universe.
+
+Motivating defect: `mart.stock_etf_daily` SPY 2026-02-02 carried `low =
+69.005` against an open/close near 690 — a dropped-digit error that passed
+every existing check (it is still ≤ open/close, and the close-to-close return
+is unaffected so UDC's return-outlier flag never fired) and propagated into
+every downstream consumer. The same scan also surfaced VZ 2026-01-08
+(low 10.60 vs ~40) and UBS 2022-08-30 (low 0.92 vs ~16).
+
+Sub-checks:
+
+| Sub-check | Condition | Severity |
+|---|---|---|
+| ordering invariant | `low ≤ min(o,c)`, `high ≥ max(o,c)`, `low ≤ high`, all > 0 | critical |
+| dropped-digit low  | `low < low_factor · min(o,c)` | critical |
+| high spike         | `high > high_factor · max(o,c)` | warning |
+| wide intraday range| `high / low > range_factor` | warning |
+
+The ordering invariant and dropped-digit-low checks gate the exit code; the
+high-spike / wide-range checks are *suspect-only* because they fire on
+genuine micro-cap / SPAC volatility, not corruption. Each finding includes
+the offending bar's OHLC plus the neighbouring closes (`prev_close` /
+`next_close`) as the reference for whether the value reverts.
+
+- **Severity:** critical (ordering / dropped-digit low), warning (high spike /
+  wide range).
+- **Source:** `src/qsa/rules/ohlc_integrity.py`
+- **Config:** `ohlc_integrity.targets` (schema.table + `asset_type`),
+  `low_factor` (default 0.5), `high_factor` (default 2.0), `range_factor`
+  (default 1.5), `max_samples` (default 25). Add the silver `*_price_1d`
+  tables to `targets` to extend coverage without code changes.
+
 ## Adding or tuning a rule
 
 1. Add a module under `src/qsa/rules/` exposing `def check(*, masd, shdb,

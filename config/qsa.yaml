@@ -38,6 +38,26 @@ mef_coverage:
   warn_below_pct:     50
   critical_below_pct: 25
 
+# R010 — OHLC price-bar integrity (quantitative). Scans the curated mart price
+# tables for the AFT investable universe (stocks + ETFs) and flags impossible
+# or implausible bars. Scope is restricted to shdb.v_investable_universe_active
+# so the plausibility checks stay false-positive-free (the noise is all sub-$5
+# micro-caps, none of which are in the AFT universe).
+#   - ordering invariant + dropped-digit low  -> critical (cron-gating)
+#   - high spike / wide intraday range         -> warning  (often real volatility)
+# `targets` lists the tables to scan; add the silver *_price_1d tables here to
+# extend coverage without code changes.
+ohlc_integrity:
+  targets:
+    - table: mart.stock_equity_daily
+      asset_type: stock
+    - table: mart.stock_etf_daily
+      asset_type: etf
+  low_factor:   0.5   # low  < low_factor  * min(open,close) -> dropped-digit low (critical)
+  high_factor:  2.0   # high > high_factor * max(open,close) -> high spike (warning)
+  range_factor: 1.5   # high / low > range_factor            -> wide intraday range (warning)
+  max_samples:  25    # cap sample rows per finding
+
 # Tables explicitly marked as deprecated. Reported with a warning regardless
 # of content; consumer-grep walks AFT repos to surface live consumers.
 deprecated_tables:

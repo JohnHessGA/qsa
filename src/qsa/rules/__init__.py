@@ -18,6 +18,7 @@ from qsa.rules.staleness import check as check_staleness
 from qsa.rules.deprecated import check as check_deprecated
 from qsa.rules.mef_coverage import check as check_mef_coverage
 from qsa.rules.thin_coverage import check as check_thin_coverage
+from qsa.rules.ohlc_integrity import check as check_ohlc_integrity
 
 ALL_RULES = [
     ("R001-invalid-timestamps", check_invalid_timestamps),
@@ -29,4 +30,5 @@ ALL_RULES = [
     ("R007-deprecated-tables",  check_deprecated),
     ("R008-mef-coverage",       check_mef_coverage),
     ("R009-thin-coverage",      check_thin_coverage),
+    ("R010-ohlc-integrity",     check_ohlc_integrity),
 ]

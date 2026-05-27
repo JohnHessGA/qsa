@@ -7,20 +7,30 @@
 
 ## Purpose
 
-Read-only audit of qualitative/sentiment/event data across MASD (bronze) and
-SHDB (silver). QSA scans the non-price slice — news, sentiment, insider/Form-4
-events, congressional trades, SEC filings, CFPB complaints, FINRA short
-interest, etc. — and emits a Markdown + CSV findings report grouped by
-severity. Used as the gating check before UDC harvest changes that touch
-qualitative inputs, and as the dated-snapshot record of qualitative data
-quality over time.
+Read-only data-quality audit across MASD (bronze) and SHDB (silver), in two
+slices:
+
+- **Qualitative** (R001–R009) — the non-price slice: news, sentiment,
+  insider/Form-4 events, congressional trades, SEC filings, CFPB complaints,
+  FINRA short interest, etc.
+- **Quantitative** (R010+) — **OHLC price-bar integrity over the AFT
+  investable universe** of stocks and ETFs (`shdb.v_investable_universe_active`).
+  This slice is deliberately narrow: QSA checks that curated price bars are
+  *possible and plausible* (no dropped-digit lows, no inverted bars); it does
+  **not** compute returns/indicators or replicate MDC/UDC freshness dashboards.
+
+QSA emits a Markdown + CSV findings report grouped by severity. Used as the
+gating check before UDC harvest changes, and as the dated-snapshot record of
+data quality over time.
 
 ## Inputs
 
 - **Read-only DB connections:**
   - `masd` — raw qualitative tables collected by MDC.
-  - `shdb` — curated qualitative tables and signals derived by UDC (search
-    path: `mart, shdb, public`).
+  - `shdb` — curated qualitative tables + signals (R001–R009), the mart price
+    tables `mart.stock_equity_daily` / `mart.stock_etf_daily` and the AFT
+    investable-universe view `shdb.v_investable_universe_active` (R010). Search
+    path: `mart, shdb, public`.
   - `mefdb` — universe tables (`mef.universe_stock`) for coverage checks.
 - **Configuration:**
   - `config/qsa.yaml` — staleness thresholds per cadence, MEF coverage tiers,
@@ -50,23 +60,27 @@ quality over time.
 
 ## Scope
 
-- **Qualitative-only.** Price/return/technical tables are out of scope —
-  those are covered by UDC's own validation, MDC's no-data alerting, and
-  Overwatch's freshness dashboards.
+- **Qualitative + a narrow quantitative slice.** The qualitative rules
+  (R001–R009) cover news/sentiment/event tables. The quantitative rules
+  (R010+) cover **OHLC price-bar integrity for the AFT investable universe
+  only**. Returns/indicators, freshness dashboards, and the full price/return
+  surface remain UDC's / MDC's / Overwatch's territory — QSA only checks that
+  curated bars are possible and plausible.
 - **Cross-database.** A single audit run spans MASD, SHDB, and MEFDB so that
   cross-tier issues (orphan curated rows, MEF universe coverage gaps) surface
   in one report.
-- **Categorical, not statistical.** R001–R009 are deterministic shape checks
-  (NULL keys, future dates, stale streams, missing-symbol joins, etc.), not
-  anomaly detection or distribution drift.
+- **Categorical, not statistical.** R001–R010 are deterministic shape checks
+  (NULL keys, future dates, stale streams, missing-symbol joins, impossible
+  OHLC bars, etc.), not anomaly detection or distribution drift.
 
 ## Hard boundaries
 
 1. Read-only. No writes to any DB; no inserts to Overwatch; no notifications.
 2. No backtesting, no scoring, no recommendations. Findings are descriptive.
 3. No LLM. All rules are deterministic SQL + Python.
-4. Qualitative slice only. Does not duplicate MDC/UDC freshness dashboards
-   for price-and-return tables.
+4. Quantitative checks are limited to OHLC bar integrity over the AFT
+   investable universe. QSA does not compute returns/indicators and does not
+   duplicate MDC/UDC freshness dashboards for price-and-return tables.
 5. Output goes to `artifacts_dir` (default `/mnt/aftdata/qsa/artifacts`, outside
    the repo). Documentation about QSA goes to `docs/`. Nothing is written under
    the repo tree.
@@ -103,6 +117,8 @@ qsa audit qualitative [--csv] [--rules R001,R007,...] [--stdout]
   - `mef_coverage.warn_below_pct` / `critical_below_pct` for R008.
   - `deprecated_tables` — schema/table/replacement/reason triples driving
     R007 plus the consumer-grep across `consumer_grep_repos`.
+  - `ohlc_integrity` — R010 scan `targets` (schema.table + `asset_type`) plus
+    `low_factor` / `high_factor` / `range_factor` / `max_samples`.
 
 ## Databases
 
@@ -111,7 +127,7 @@ qsa audit qualitative [--csv] [--rules R001,R007,...] [--stdout]
 | Database | Schema(s)              | Purpose                                      |
 |----------|------------------------|----------------------------------------------|
 | `masd`   | `masd`                 | Raw qualitative tables (news, insider, etc.) |
-| `shdb`   | `mart`, `shdb`         | Curated qualitative tables + derived signals |
+| `shdb`   | `mart`, `shdb`         | Curated qualitative tables + derived signals (R001–R009); mart price tables + `v_investable_universe_active` (R010) |
 | `mefdb`  | `mef`                  | `universe_stock` for R008 MEF coverage tier  |
 
 All connections set `readonly=True` and `autocommit=True`. QSA writes nothing.
@@ -136,6 +152,7 @@ Full descriptions live in `docs/qsa_rules.md`.
 | R007  | deprecated-tables        | Listed-deprecated tables + grep across AFT repos for live consumers |
 | R008  | mef-coverage             | Coverage of MEF's 305-stock universe per tier (`sparse_expected` tables get INFO only) |
 | R009  | thin-coverage            | Tables with very low row/symbol counts vs. expectation |
+| R010  | ohlc-integrity           | Impossible/implausible OHLC bars (dropped-digit low, inverted bar) in mart price tables, AFT investable universe only — **quantitative** |
 
 ## Operational notes
 

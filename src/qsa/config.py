@@ -49,6 +49,7 @@ def load_postgres_config() -> dict[str, dict[str, Any]]:
 def load_app_config() -> dict[str, Any]:
     cfg = _load_yaml(repo_root() / "config" / "qsa.yaml")
     for required in (
+        "artifacts_dir",
         "min_valid_date",
         "future_date_tolerance_days",
         "staleness_thresholds_days",
@@ -59,3 +60,13 @@ def load_app_config() -> dict[str, Any]:
         if required not in cfg:
             raise ConfigError(f"config/qsa.yaml missing required section: {required}")
     return cfg
+
+
+def artifacts_dir() -> Path:
+    """Base directory for generated reports (from `config/qsa.yaml`).
+
+    Reports are written under a `YYYY/MM` subtree of this path; nothing is
+    written under the repo. Set via `artifacts_dir` in `config/qsa.yaml`.
+    """
+    cfg = load_app_config()
+    return Path(str(cfg["artifacts_dir"])).expanduser()

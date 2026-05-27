@@ -34,12 +34,15 @@ quality over time.
 
 ## Outputs
 
-- **Markdown report** — `reports/qsa_audit_YYYYMMDD.md` by default, grouped by
-  severity (critical / warning / info), per finding: rule ID, database, table,
-  one-line summary, detail block, affected row/symbol counts, sample values,
-  recommended action.
-- **CSV findings table** (optional, `--csv PATH`) — flat one-row-per-finding
-  format suitable for diffing against prior baselines.
+- **Markdown report** — `<artifacts_dir>/YYYY/MM/qsa_audit_YYYYMMDD.md`, where
+  `artifacts_dir` is configured in `config/qsa.yaml` (default
+  `/mnt/aftdata/qsa/artifacts`) and `YYYY/MM` is taken from the run date.
+  Grouped by severity (critical / warning / info), per finding: rule ID,
+  database, table, one-line summary, detail block, affected row/symbol counts,
+  sample values, recommended action.
+- **CSV findings table** (optional, `--csv`) — flat one-row-per-finding format
+  suitable for diffing against prior baselines, written alongside the Markdown
+  report as `qsa_audit_YYYYMMDD.csv`.
 - **Exit code:** `0` if zero critical findings, `1` if any critical present.
   Wired so a CI/cron caller can gate on critical-clean.
 - **No DB writes.** All connections are opened with `readonly=True`. QSA never
@@ -64,13 +67,15 @@ quality over time.
 3. No LLM. All rules are deterministic SQL + Python.
 4. Qualitative slice only. Does not duplicate MDC/UDC freshness dashboards
    for price-and-return tables.
-5. Output goes to `reports/`. Documentation about QSA goes to `docs/`.
+5. Output goes to `artifacts_dir` (default `/mnt/aftdata/qsa/artifacts`, outside
+   the repo). Documentation about QSA goes to `docs/`. Nothing is written under
+   the repo tree.
 
 ## Schedule
 
 - **Ad-hoc** (default). Operator runs `qsa audit qualitative` before/after
-  qualitative-pipeline changes and commits the resulting report under
-  `reports/qsa_audit_*` as a dated baseline.
+  qualitative-pipeline changes; the resulting dated report lands under
+  `<artifacts_dir>/YYYY/MM/qsa_audit_*` as a baseline.
 - No cron entry in v1. If cadence is added later, the cron should call the
   CLI directly (`qsa audit qualitative ...`) per the global standard — no
   wrapper script with logic.
@@ -81,7 +86,7 @@ See `src/qsa/cli.py` and `docs/qsa_cli_reference.md`. v1 implements one
 subcommand:
 
 ```
-qsa audit qualitative [--output PATH] [--csv PATH] [--rules R001,R007,...] [--stdout]
+qsa audit qualitative [--csv] [--rules R001,R007,...] [--stdout]
 ```
 
 ## Config
@@ -89,6 +94,8 @@ qsa audit qualitative [--output PATH] [--csv PATH] [--rules R001,R007,...] [--st
 - `config/postgres.secrets.yaml` — credentials for `masd`, `shdb`, `mefdb`
   (gitignored; see `config/postgres.secrets.yaml.example`).
 - `config/qsa.yaml` — application knobs:
+  - `artifacts_dir` — base directory for generated reports (default
+    `/mnt/aftdata/qsa/artifacts`); reports land under its `YYYY/MM` subtree.
   - `min_valid_date`, `future_date_tolerance_days` for R001/R002.
   - `staleness_thresholds_days` per cadence — `daily`, `weekly`, `monthly`,
     `quarterly`, `bi_monthly_lagged` (FINRA short interest, mirrors MDC's
@@ -111,7 +118,8 @@ All connections set `readonly=True` and `autocommit=True`. QSA writes nothing.
 
 ### Tables written (outputs)
 
-None. QSA is purely advisory; its outputs are files in `reports/`.
+None. QSA is purely advisory; its outputs are files under `artifacts_dir`
+(default `/mnt/aftdata/qsa/artifacts`), never under the repo or any DB.
 
 ## Rule catalog (summary)
 

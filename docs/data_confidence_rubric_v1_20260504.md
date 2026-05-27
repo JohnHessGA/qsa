@@ -733,7 +733,7 @@ These would benefit from your weigh-in before B2 (mart) starts:
 - Output of this design phase feeds Path B2: canonical qualitative
   mart design.
 - Underlying data layer state (post-cleanup baseline):
-  `~/repos/qsa/reports/qualitative_cleanup_completion_20260503.md`.
+  `/mnt/aftdata/qsa/artifacts/2026/05/qualitative_cleanup_completion_20260503.md`.
 - Per-source MASD/SHDB conventions (entity_type / filer_type / etc.)
   established by:
   - MDC migration 029 (sec_api penalty entity metadata)

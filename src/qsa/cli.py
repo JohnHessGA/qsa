@@ -18,8 +18,18 @@ from datetime import datetime
 from pathlib import Path
 
 from qsa.audit import run_audit
-from qsa.config import repo_root
+from qsa.config import artifacts_dir
 from qsa.report import render_markdown, write_csv, write_markdown
+
+
+def _report_path(generated_at: datetime, suffix: str) -> Path:
+    """Dated report path under the configured artifacts dir.
+
+    Layout: <artifacts_dir>/YYYY/MM/qsa_audit_YYYYMMDD.<suffix>, with YYYY/MM
+    taken from the generated date. Parent dirs are created by the writers.
+    """
+    base = artifacts_dir() / generated_at.strftime("%Y") / generated_at.strftime("%m")
+    return base / f"qsa_audit_{generated_at.strftime('%Y%m%d')}.{suffix}"
 
 
 class _FullHelpArgumentParser(argparse.ArgumentParser):
@@ -58,14 +68,10 @@ def _add_audit(sub: argparse._SubParsersAction) -> None:
         help="Audit qualitative/sentiment/event data across MASD and SHDB.",
     )
     q.add_argument(
-        "--output", "-o",
-        default=None,
-        help="Path to write the Markdown report. Default: reports/qsa_audit_YYYYMMDD.md",
-    )
-    q.add_argument(
         "--csv",
-        default=None,
-        help="Optional CSV path for a flat findings table.",
+        action="store_true",
+        help="Also emit a CSV findings table alongside the Markdown report "
+             "(same artifacts dir, .csv extension).",
     )
     q.add_argument(
         "--rules",
@@ -87,15 +93,18 @@ def _run_status(args: argparse.Namespace) -> int:
     print("QSA Status")
     print("==========")
 
-    reports_dir = repo_root() / "reports"
-    audits = sorted(reports_dir.glob("qsa_audit_*.md"), reverse=True) if reports_dir.is_dir() else []
+    reports_dir = artifacts_dir()
+    audits = (
+        sorted(reports_dir.rglob("qsa_audit_*.md"), key=lambda p: p.name, reverse=True)
+        if reports_dir.is_dir() else []
+    )
     if audits:
         latest = audits[0]
         mtime = datetime.fromtimestamp(latest.stat().st_mtime)
         print(f"Latest audit: {latest.name}")
         print(f"              {mtime.strftime('%Y-%m-%d %H:%M')} ({latest})")
     else:
-        print("Latest audit: (none — no qsa_audit_*.md in reports/)")
+        print(f"Latest audit: (none — no qsa_audit_*.md under {reports_dir})")
 
     print()
     print("Database connectivity (readonly):")
@@ -130,14 +139,12 @@ def _run_audit_qualitative(args: argparse.Namespace) -> int:
     print(f"Total findings: {len(findings)}", file=sys.stderr)
 
     generated_at = datetime.now()
-    output_path = Path(args.output) if args.output else (
-        repo_root() / "reports" / f"qsa_audit_{generated_at.strftime('%Y%m%d')}.md"
-    )
+    output_path = _report_path(generated_at, "md")
     write_markdown(findings, output_path, generated_at=generated_at)
     print(f"Wrote {output_path}", file=sys.stderr)
 
     if args.csv:
-        csv_path = Path(args.csv)
+        csv_path = _report_path(generated_at, "csv")
         write_csv(findings, csv_path)
         print(f"Wrote {csv_path}", file=sys.stderr)
 

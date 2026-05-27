@@ -15,26 +15,36 @@ qsa --help
 ## `qsa audit qualitative`
 
 Runs all enabled rules against MASD + SHDB + MEFDB and writes a Markdown
-report (and optionally CSV) to `reports/`.
+report (and optionally CSV) under the configured `artifacts_dir`.
 
 ```
 qsa audit qualitative
-    [--output PATH]
-    [--csv PATH]
+    [--csv]
     [--rules R001,R007,...]
     [--stdout]
 ```
 
+### Output location
+
+Reports are written to:
+
+```
+<artifacts_dir>/YYYY/MM/qsa_audit_YYYYMMDD.md
+```
+
+where `artifacts_dir` comes from `config/qsa.yaml` (default
+`/mnt/aftdata/qsa/artifacts`) and `YYYY/MM/YYYYMMDD` are taken from the local
+run date. The `YYYY/MM` subtree is created on demand. Nothing is written under
+the repo. There is no flag to override the path — relocate by editing
+`artifacts_dir` in `config/qsa.yaml`.
+
 ### Options
 
-- `--output PATH`, `-o PATH`
-  Markdown report path. Default: `reports/qsa_audit_YYYYMMDD.md` under the
-  repo root, where `YYYYMMDD` is local-time today.
-- `--csv PATH`
-  Optional CSV path for a flat findings table (one row per finding, columns
+- `--csv`
+  Also emit a flat CSV findings table (one row per finding, columns
   `rule_id, severity, database, table, summary, affected_rows,
-  affected_symbols, recommendation`). Useful for diffing against prior
-  baselines.
+  affected_symbols, recommendation`) next to the Markdown report as
+  `qsa_audit_YYYYMMDD.csv`. Useful for diffing against prior baselines.
 - `--rules R001,R007,...`
   Comma-separated rule IDs to run. Short codes (`R001`) are accepted and
   resolved by prefix-match against the canonical IDs (`R001-invalid-
@@ -59,10 +69,7 @@ qsa audit qualitative
 Run only the staleness and deprecated-tables rules and dump a CSV alongside:
 
 ```bash
-qsa audit qualitative \
-    --rules R006,R007 \
-    --output reports/qsa_audit_partial_$(date +%Y%m%d).md \
-    --csv    reports/qsa_audit_partial_$(date +%Y%m%d).csv
+qsa audit qualitative --rules R006,R007 --csv
 ```
 
 Quick check piped to a pager:
@@ -94,6 +101,8 @@ Each finding includes:
 
 All in `config/qsa.yaml`:
 
+- `artifacts_dir` — base directory for generated reports (default
+  `/mnt/aftdata/qsa/artifacts`); reports land under its `YYYY/MM` subtree.
 - `min_valid_date`, `future_date_tolerance_days` — R001 / R002 thresholds.
 - `staleness_thresholds_days` — per-cadence freshness rules for R006,
   including `bi_monthly_lagged: 21` for FINRA short interest (matches MDC's
@@ -110,5 +119,6 @@ All in `config/qsa.yaml`:
 
 - Write to any database (connections are `readonly=True`).
 - Send notifications (no email, no SMS, no Overwatch event rows).
-- Run on cron in v1 — operator-driven, dated reports committed to `reports/`.
+- Run on cron in v1 — operator-driven, dated reports written under
+  `artifacts_dir` (default `/mnt/aftdata/qsa/artifacts`).
 - Score, rank, or recommend trades. Findings are descriptive only.

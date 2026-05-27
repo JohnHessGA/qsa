@@ -1,5 +1,12 @@
 # QSA application configuration.
 
+# Base directory for generated reports. QSA writes dated reports under a
+# YYYY/MM subtree of this path, e.g.
+#   /mnt/aftdata/qsa/artifacts/2026/05/qsa_audit_20260527.md
+# Nothing is written under the repo itself. The directory tree is created on
+# demand. May start with ~ (expanded at load time).
+artifacts_dir: /mnt/aftdata/qsa/artifacts
+
 # Lower bound for "valid" event/article timestamps. Anything earlier is treated
 # as garbage (covers the 0001-12-31 BC Finnhub case and similar).
 min_valid_date: "2000-01-01"

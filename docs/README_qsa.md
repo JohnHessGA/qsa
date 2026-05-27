@@ -87,7 +87,7 @@ data quality over time.
 
 ## Schedule
 
-- **Weekly cron** — `Sat 06:00 America/New_York`, via the standard plumbing
+- **Weekly cron** — `Sat 09:00 America/New_York`, via the standard plumbing
   wrapper `scripts/cron_run.sh audit qualitative` (activates the venv and
   execs `qsa "$@"`; no decision logic). Output and exit code as usual; the
   exit code lets the run gate on critical-clean.

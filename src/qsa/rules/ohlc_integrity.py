@@ -51,7 +51,7 @@ _DEFAULT_TARGETS: list[dict[str, str]] = [
 
 _DEFAULT_LOW_FACTOR = 0.5     # low < low_factor * min(open,close)  -> dropped-digit low (critical)
 _DEFAULT_HIGH_FACTOR = 2.0    # high > high_factor * max(open,close) -> high spike (warning)
-_DEFAULT_RANGE_FACTOR = 1.5   # high/low > range_factor              -> wide intraday range (warning)
+_DEFAULT_RANGE_FACTOR = 2.0   # high/low > range_factor              -> wide intraday range (warning)
 _DEFAULT_MAX_SAMPLES = 25
 
 _TABLE_RE = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$")

@@ -169,7 +169,7 @@ the offending bar's OHLC plus the neighbouring closes (`prev_close` /
 - **Source:** `src/qsa/rules/ohlc_integrity.py`
 - **Config:** `ohlc_integrity.targets` (schema.table + `asset_type`),
   `low_factor` (default 0.5), `high_factor` (default 2.0), `range_factor`
-  (default 1.5), `max_samples` (default 25). Add the silver `*_price_1d`
+  (default 2.0), `max_samples` (default 25). Add the silver `*_price_1d`
   tables to `targets` to extend coverage without code changes.
 
 ## Adding or tuning a rule

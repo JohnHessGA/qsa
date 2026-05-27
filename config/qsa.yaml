@@ -55,7 +55,7 @@ ohlc_integrity:
       asset_type: etf
   low_factor:   0.5   # low  < low_factor  * min(open,close) -> dropped-digit low (critical)
   high_factor:  2.0   # high > high_factor * max(open,close) -> high spike (warning)
-  range_factor: 1.5   # high / low > range_factor            -> wide intraday range (warning)
+  range_factor: 2.0   # high / low > range_factor            -> wide intraday range (warning)
   max_samples:  25    # cap sample rows per finding
 
 # Tables explicitly marked as deprecated. Reported with a warning regardless

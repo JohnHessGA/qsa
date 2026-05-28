@@ -38,7 +38,7 @@ data quality over time.
     consumers. Checked into the repo.
   - `config/postgres.secrets.yaml` — DB credentials. Gitignored; see
     `config/postgres.secrets.yaml.example` and
-    `~/repos/notes/secrets-conventions.md`.
+    `~/repos/aft-platform/docs/conventions/secrets-conventions.md`.
 - **Filesystem (read-only) for R007 consumer-grep:** `~/repos/{mef, ccw, cia,
   iraguard, rse, das, xpm, udc}` per `consumer_grep_repos` in `qsa.yaml`.
 

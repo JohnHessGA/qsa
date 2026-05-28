@@ -6,7 +6,7 @@ Two YAML files live under `config/`:
 - `config/qsa.yaml`              — application settings (thresholds, deprecated tables).
 
 Credentials live exclusively in the YAML file. No env-var fallback —
-see ``~/repos/notes/secrets-conventions.md``.
+see ``~/repos/aft-platform/docs/conventions/secrets-conventions.md``.
 """
 
 from __future__ import annotations

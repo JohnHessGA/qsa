@@ -18,7 +18,7 @@ build/
 *.log
 
 # Secrets / local config — DB passwords. AFT convention: filename
-# includes "secrets". See ~/repos/notes/secrets-conventions.md.
+# includes "secrets". See ~/repos/aft-platform/docs/conventions/secrets-conventions.md.
 # Nothing else should be excluded from git: per-project policy is
 # "everything except API keys, usernames, and passwords gets pushed
 # to github."

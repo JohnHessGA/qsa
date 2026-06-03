@@ -172,6 +172,36 @@ the offending bar's OHLC plus the neighbouring closes (`prev_close` /
   (default 2.0), `max_samples` (default 25). Add the silver `*_price_1d`
   tables to `targets` to extend coverage without code changes.
 
+### R011 — ticker-reuse
+
+Reports the population of **ticker-reuse / long-void boundaries** — symbols
+whose `shdb.stock_price_1d` series splices two different companies under one
+`security_id` because a delisted issuer's ticker was later adopted by a new
+company (ALF Alfi→Centurion, BBBY Bed Bath & Beyond→Beyond, AKTS
+Akoustis→Aktis). A long-horizon return that anchors before the boundary
+silently compares two companies — the RSE I-000189 phantom-gainer defect.
+
+Part of the ticker-reuse initiative (Option B — lightweight boundary guard;
+design SSoT `~/repos/aft-platform/docs/platform/security-identity-and-ticker-reuse.md`).
+QSA detects/reports only — the guard lives in consumers (RSE return-rank). Two
+parts:
+
+| Part | What | Severity |
+|---|---|---|
+| boundary report (universe) | a recorded boundary on a symbol in `shdb.v_investable_universe_active` | critical |
+| boundary report (other) | a recorded boundary outside the investable universe | warning |
+| drift cross-check | a > `gap_trading_days` void in `shdb.stock_price_1d` over the universe that is **absent** from the boundary table (table is stale) | warning |
+
+Reads the propagated SSOT `shdb.security_ticker_boundary` (origin
+`masd.security_ticker_boundary`, seeded by `mdc security-identity boundaries`).
+The universe-critical bucket gates the exit code, matching R010's posture.
+
+- **Severity:** critical (universe boundary), warning (non-universe boundary,
+  drift).
+- **Source:** `src/qsa/rules/ticker_reuse.py`
+- **Config:** `ticker_reuse.gap_trading_days` (default 150, drift cross-check
+  threshold), `max_samples` (default 50).
+
 ## Adding or tuning a rule
 
 1. Add a module under `src/qsa/rules/` exposing `def check(*, masd, shdb,

@@ -1,7 +1,13 @@
-# Proposed rule R011 — ticker-reuse / spliced price series
+# Rule R011 — ticker-reuse / spliced price series
 
-**Date:** 2026-06-02
-**Status:** Proposed (not yet implemented)
+**Date:** 2026-06-02 (proposed) · **2026-06-03 SHIPPED**
+**Status:** **IMPLEMENTED** — `src/qsa/rules/ticker_reuse.py`, registered as
+`R011-ticker-reuse`. The shipped rule **reads the authoritative boundary table**
+`shdb.security_ticker_boundary` (critical for investable-universe symbols, warning
+otherwise) plus a universe-scoped drift cross-check — simpler than the Strategy
+A/B detection below, which is now superseded by the upstream MDC gap detector
+(`masd.security_ticker_boundary`). The Strategy A/B notes are retained as
+background. Current rule behaviour: `docs/qsa_rules.md` → R011.
 **Motivation:** RSE inquiry I-000189 ("stocks up >100% over 2 years") returned
 ALF, BBBY, AKTS as ~9,000% gainers because their `shdb.stock_price_1d` series
 splice **two different companies** under one `security_id` (a delisted issuer's

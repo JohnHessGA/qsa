@@ -7,17 +7,21 @@
 
 ## Purpose
 
-Read-only data-quality audit across MASD (bronze) and SHDB (silver), in two
+Read-only data-quality audit across MASD (bronze) and SHDB (silver), in three
 slices:
 
 - **Qualitative** (R001–R009) — the non-price slice: news, sentiment,
   insider/Form-4 events, congressional trades, SEC filings, CFPB complaints,
   FINRA short interest, etc.
-- **Quantitative** (R010+) — **OHLC price-bar integrity over the AFT
+- **Quantitative** (R010) — **OHLC price-bar integrity over the AFT
   investable universe** of stocks and ETFs (`shdb.v_investable_universe_active`).
   This slice is deliberately narrow: QSA checks that curated price bars are
   *possible and plausible* (no dropped-digit lows, no inverted bars); it does
   **not** compute returns/indicators or replicate MDC/UDC freshness dashboards.
+- **Identity** (R011) — **ticker-reuse / long-void boundaries** where one
+  `security_id` splices two different companies because a delisted issuer's
+  ticker was later reused. Reports `shdb.security_ticker_boundary` plus a drift
+  cross-check against long price-series voids.
 
 QSA emits a Markdown + CSV findings report grouped by severity. Used as the
 gating check before UDC harvest changes, and as the dated-snapshot record of
@@ -60,18 +64,19 @@ data quality over time.
 
 ## Scope
 
-- **Qualitative + a narrow quantitative slice.** The qualitative rules
-  (R001–R009) cover news/sentiment/event tables. The quantitative rules
-  (R010+) cover **OHLC price-bar integrity for the AFT investable universe
-  only**. Returns/indicators, freshness dashboards, and the full price/return
-  surface remain UDC's / MDC's / Overwatch's territory — QSA only checks that
-  curated bars are possible and plausible.
+- **Qualitative + narrow quantitative & identity slices.** The qualitative
+  rules (R001–R009) cover news/sentiment/event tables. R010 covers **OHLC
+  price-bar integrity for the AFT investable universe only**; R011 covers
+  **ticker-reuse boundaries**. Returns/indicators, freshness dashboards, and
+  the full price/return surface remain UDC's / MDC's / Overwatch's territory —
+  QSA only checks that curated bars are possible and plausible.
 - **Cross-database.** A single audit run spans MASD, SHDB, and MEFDB so that
   cross-tier issues (orphan curated rows, MEF universe coverage gaps) surface
   in one report.
-- **Categorical, not statistical.** R001–R010 are deterministic shape checks
+- **Categorical, not statistical.** R001–R011 are deterministic shape checks
   (NULL keys, future dates, stale streams, missing-symbol joins, impossible
-  OHLC bars, etc.), not anomaly detection or distribution drift.
+  OHLC bars, ticker-reuse boundaries, etc.), not anomaly detection or
+  distribution drift.
 
 ## Hard boundaries
 
@@ -88,20 +93,21 @@ data quality over time.
 ## Schedule
 
 - **Weekly cron** — `Sat 09:00 America/New_York`, via the standard plumbing
-  wrapper `scripts/cron_run.sh audit qualitative` (activates the venv and
-  execs `qsa "$@"`; no decision logic). Output and exit code as usual; the
+  wrapper `scripts/cron_run.sh` (activates the venv and execs `qsa audit "$@"`;
+  the wrapper owns the `audit` subcommand, so the crontab line is a bare
+  wrapper call with no decision logic). Output and exit code as usual; the
   exit code lets the run gate on critical-clean.
-- **Ad-hoc** — operators also run `qsa audit qualitative` by hand before/after
+- **Ad-hoc** — operators also run `qsa audit` by hand before/after
   pipeline changes; the dated report lands under
   `<artifacts_dir>/YYYY/MM/qsa_audit_*` either way.
 
 ## CLI surface
 
 See `src/qsa/cli.py` and `docs/qsa_cli_reference.md`. v1 implements one
-subcommand:
+subcommand, which runs all rules:
 
 ```
-qsa audit qualitative [--csv] [--rules R001,R007,...] [--stdout]
+qsa audit [--csv] [--rules R001,R007,...] [--stdout]
 ```
 
 ## Config

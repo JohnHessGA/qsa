@@ -1,7 +1,7 @@
 # QSA — CLI Reference
 
-QSA exposes one top-level command (`qsa`) with one subcommand group (`audit`)
-and one audit kind (`qualitative`). Everything is read-only.
+QSA exposes one top-level command (`qsa`) with one audit subcommand (`audit`),
+which runs all rules. Everything is read-only.
 
 ## Install / activate
 
@@ -12,13 +12,13 @@ pip install -e .            # editable install on first use
 qsa --help
 ```
 
-## `qsa audit qualitative`
+## `qsa audit`
 
 Runs all enabled rules against MASD + SHDB + MEFDB and writes a Markdown
 report (and optionally CSV) under the configured `artifacts_dir`.
 
 ```
-qsa audit qualitative
+qsa audit
     [--csv]
     [--rules R001,R007,...]
     [--stdout]
@@ -63,19 +63,19 @@ the repo. There is no flag to override the path — relocate by editing
 Full audit with default-named report:
 
 ```bash
-qsa audit qualitative
+qsa audit
 ```
 
 Run only the staleness and deprecated-tables rules and dump a CSV alongside:
 
 ```bash
-qsa audit qualitative --rules R006,R007 --csv
+qsa audit --rules R006,R007 --csv
 ```
 
 Quick check piped to a pager:
 
 ```bash
-qsa audit qualitative --stdout > /dev/null  # writes file + prints to stdout
+qsa audit --stdout > /dev/null  # writes file + prints to stdout
 ```
 
 ## Report layout

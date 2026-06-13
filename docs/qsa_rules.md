@@ -210,6 +210,6 @@ The universe-critical bucket gates the exit code, matching R010's posture.
    canonical ID (`Rxxx-short-name`).
 3. If the rule needs configuration, add it to `config/qsa.yaml` and read it
    via `app_cfg`.
-4. Run `qsa audit qualitative --rules Rxxx --stdout` to inspect findings,
+4. Run `qsa audit --rules Rxxx --stdout` to inspect findings,
    then run a full audit; the new dated baseline lands under `artifacts_dir`
    (default `/mnt/aftdata/qsa/artifacts/YYYY/MM/`).

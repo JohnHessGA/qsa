@@ -4,7 +4,7 @@ Subcommands:
 
     qsa                     → equivalent to `qsa status`
     qsa status              → last audit timestamp + DB connectivity check
-    qsa audit qualitative   → run the qualitative audit (read-only)
+    qsa audit               → run the audit, all rules (read-only)
 
 The audit is read-only: connections are opened with readonly=True and no
 rule issues a write of any kind.
@@ -70,34 +70,27 @@ def _add_status(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_audit(sub: argparse._SubParsersAction) -> None:
-    p = sub.add_parser("audit", help="Run a QSA audit.")
-    audit_sub = p.add_subparsers(
-        dest="audit_kind",
-        required=True,
-        parser_class=_FullHelpArgumentParser,
+    p = sub.add_parser(
+        "audit",
+        help="Run the QSA audit (all rules) across MASD and SHDB.",
     )
-
-    q = audit_sub.add_parser(
-        "qualitative",
-        help="Audit qualitative/sentiment/event data across MASD and SHDB.",
-    )
-    q.add_argument(
+    p.add_argument(
         "--csv",
         action="store_true",
         help="Also emit a CSV findings table alongside the Markdown report "
              "(same artifacts dir, .csv extension).",
     )
-    q.add_argument(
+    p.add_argument(
         "--rules",
         default=None,
         help="Comma-separated rule IDs to run (default: all). Example: R001,R007",
     )
-    q.add_argument(
+    p.add_argument(
         "--stdout",
         action="store_true",
         help="Print the report to stdout in addition to writing it.",
     )
-    q.set_defaults(func=_run_audit_qualitative)
+    p.set_defaults(func=_run_audit)
 
 
 def _run_status(args: argparse.Namespace) -> int:
@@ -137,7 +130,7 @@ def _run_status(args: argparse.Namespace) -> int:
     return rc
 
 
-def _run_audit_qualitative(args: argparse.Namespace) -> int:
+def _run_audit(args: argparse.Namespace) -> int:
     only_rules: list[str] | None = None
     if args.rules:
         only_rules = []
@@ -148,7 +141,7 @@ def _run_audit_qualitative(args: argparse.Namespace) -> int:
                 continue
             only_rules.append(token if "-" in token else _resolve_rule_prefix(token))
 
-    print("Running QSA qualitative audit (read-only)...", file=sys.stderr)
+    print("Running QSA audit (read-only)...", file=sys.stderr)
     findings = run_audit(only_rules=only_rules)
     print(f"Total findings: {len(findings)}", file=sys.stderr)
 

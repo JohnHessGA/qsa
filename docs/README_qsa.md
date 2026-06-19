@@ -103,12 +103,25 @@ data quality over time.
 
 ## CLI surface
 
-See `src/qsa/cli.py` and `docs/qsa_cli_reference.md`. v1 implements one
-subcommand, which runs all rules:
+See `src/qsa/cli.py` and `docs/qsa_cli_reference.md`. The audit subcommand runs
+all rules:
 
 ```
 qsa audit [--csv] [--rules R001,R007,...] [--stdout]
 ```
+
+A second, **non-audit** subcommand compiles the covered-call operations report
+(added 2026-06-18 — see `docs/qsa_cli_reference.md` § `qsa ccoption`):
+
+```
+qsa ccoption [--compile-only] [--dry-run] [--stdout]
+```
+
+Unlike `audit`, `ccoption` *runs other AFT tools* (IRA Guard + cc2) to refresh
+their Markdown artifacts, then slices and recombines those artifacts into one
+consolidated covered-call report. QSA still writes no database; the side
+effects (Fidelity fetch, yfinance, PHDB/CC2DB writes) belong to the invoked
+tools.
 
 ## Config
 

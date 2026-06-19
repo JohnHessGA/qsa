@@ -94,6 +94,26 @@ deprecated_tables:
     replacement: insider_conviction_signals
     reason: "RETIRED 2026-05-03 — derived from frozen Finnhub MSPR."
 
+# `qsa ccoption` — consolidated covered-call operations report. Optional block:
+# the defaults below match where IRA Guard and cc2 write today, so this can be
+# omitted entirely. Override only the `root`/`glob`/`label` you need to move.
+# (The orchestration constants — 3x30s process backoff, 5s quiesce, 900s tool
+# timeout — and the venv console-script paths live in src/qsa/ccoption.py.)
+ccoption:
+  sources:
+    cc2:
+      label: cc2 phase 2
+      root:  /mnt/aftdata/cc2/artifacts
+      glob:  "cc2_phase2_options_*.md"
+    iraguard_ccoptions:
+      label: IRA Guard ccoptions
+      root:  /mnt/aftdata/iraguard/artifacts/ccoptions
+      glob:  "ccoptions-*.md"
+    iraguard_standing:
+      label: IRA Guard standing
+      root:  /mnt/aftdata/iraguard/artifacts/standing
+      glob:  "iraguard-standing-*.md"
+
 # Repos to grep for live consumers of deprecated tables.
 consumer_grep_repos:
   - ~/repos/mef

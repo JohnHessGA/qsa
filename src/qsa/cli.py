@@ -5,6 +5,7 @@ Subcommands:
     qsa                     → equivalent to `qsa status`
     qsa status              → last audit timestamp + DB connectivity check
     qsa audit               → run the audit, all rules (read-only)
+    qsa ccoption            → consolidated covered-call operations report
 
 The audit is read-only: connections are opened with readonly=True and no
 rule issues a write of any kind.
@@ -91,6 +92,79 @@ def _add_audit(sub: argparse._SubParsersAction) -> None:
         help="Print the report to stdout in addition to writing it.",
     )
     p.set_defaults(func=_run_audit)
+
+
+def _add_ccoption(sub: argparse._SubParsersAction) -> None:
+    p = sub.add_parser(
+        "ccoption",
+        help="Refresh (run IRA Guard + cc2) and compile a consolidated "
+             "covered-call operations report.",
+    )
+    p.add_argument(
+        "--compile-only",
+        action="store_true",
+        help="Skip running the tools; compile from the newest artifacts already "
+             "on disk (no side effects).",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would run and the live process pre-checks, but don't "
+             "execute the tools; compiles from on-disk artifacts for preview.",
+    )
+    p.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print the report to stdout in addition to writing it.",
+    )
+    p.set_defaults(func=_run_ccoption)
+
+
+def _run_ccoption(args: argparse.Namespace) -> int:
+    """Compile the consolidated covered-call operations report.
+
+    Default refreshes inputs by running IRA Guard (run/ccoptions/standing) and
+    cc2 (scan) — each gated by a live-process backoff — then compiles. The
+    report is always written; on any failure it carries a banner and the
+    command exits non-zero.
+    """
+    from qsa.ccoption import (
+        STEPS, build_report, build_report_live, report_path, wait_for_clear,
+    )
+
+    def log(msg: str) -> None:
+        print(msg, file=sys.stderr)
+
+    generated_at = datetime.now()
+
+    if args.dry_run:
+        print("DRY RUN — would run, in order:", file=sys.stderr)
+        for step in STEPS:
+            running = wait_for_clear(step.precheck, attempts=1)
+            state = "BUSY" if running else "clear"
+            print(f"  - {step.label} (pre-check {','.join(step.precheck)}: {state})",
+                  file=sys.stderr)
+        markdown, problems = build_report(generated_at=generated_at)
+    elif args.compile_only:
+        markdown, problems = build_report(generated_at=generated_at)
+    else:
+        markdown, problems = build_report_live(generated_at=generated_at, log=log)
+
+    output_path = report_path(artifacts_dir(), generated_at)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(markdown)
+    print(f"Wrote {output_path}", file=sys.stderr)
+
+    if problems:
+        print(f"INCOMPLETE — {len(problems)} issue(s):", file=sys.stderr)
+        for prob in problems:
+            print(f"  - {prob}", file=sys.stderr)
+
+    if args.stdout:
+        print(markdown)
+
+    # Exit non-zero if the report is not fully fresh/complete.
+    return 0 if not problems else 1
 
 
 def _run_status(args: argparse.Namespace) -> int:
@@ -180,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_status(sub)
     _add_audit(sub)
+    _add_ccoption(sub)
 
     args = parser.parse_args(argv)
     if args.cmd is None:

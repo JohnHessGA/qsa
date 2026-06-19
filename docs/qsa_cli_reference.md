@@ -78,6 +78,91 @@ Quick check piped to a pager:
 qsa audit --stdout > /dev/null  # writes file + prints to stdout
 ```
 
+## `qsa ccoption`
+
+Compiles a **consolidated covered-call operations report** from the latest IRA
+Guard + cc2 artifacts. Unlike `audit`, this command is *not* read-only: by
+default it **runs other AFT tools** to refresh their inputs first, then slices
+and recombines their Markdown output. QSA itself writes no database — the side
+effects (Fidelity fetch, possible notifications, yfinance, PHDB/CC2DB writes)
+belong to the invoked tools.
+
+```
+qsa ccoption
+    [--compile-only]
+    [--dry-run]
+    [--stdout]
+```
+
+### What it does (default, live)
+
+1. **Refresh inputs**, in order: `iraguard run` → `iraguard ccoptions` →
+   `iraguard standing` → `cc2 scan`.
+   - Before each tool, look for an already-running instance with
+     `pgrep -f <venv console-script path>`. For `cc2 scan` it also waits on a
+     running **MDC** (cc2 fail-fasts on the MDC lock). If something is running,
+     back off **30s** and retry, up to **3 attempts**, then give up on that
+     step.
+   - A step that can't get a clear slot, exits non-zero, or times out
+     (`TOOL_TIMEOUT_SECONDS`, default 900) is recorded as a failure but does
+     **not** stop later steps.
+2. **Quiesce 5s** so freshly-written files settle.
+3. **Compile** — from each tool's newest artifact, slice the `##` sections:
+   - cc2 phase-2 → `Funds Available`, `Recommendations`
+   - IRA Guard ccoptions → `Suggestions`
+   - IRA Guard standing → `Open Orders`, `Options in Play`, `Options Available`
+   - and assemble them under: *Write candidates today · Already in play ·
+     Writable shares · Cash available · Open stock/ETF orders*.
+4. **Freshness assertion** — every consumed artifact is checked against the run
+   start time and tagged in the Sources table: 🟢 fresh / 🟡 STALE / 🔴 missing.
+
+### Output location
+
+```
+<artifacts_dir>/ccoptions/YYYY/MM/ccoption-YYYY-MM-DD-HHMM.md
+```
+
+Minute precision in the filename so same-day reruns never collide. The report
+is **always written**, even when incomplete.
+
+### Failure handling
+
+Any problem (a tool still busy after retries, a non-zero exit, a timeout, or a
+stale/missing artifact) is collected and rendered as a prominent
+`🔴 INCOMPLETE REPORT` banner at the top of the document listing exactly what
+happened; the command then exits non-zero (same details on stderr). This is the
+"produce a report stating the issue, then abort" contract — the report never
+silently presents stale data as fresh.
+
+### Options
+
+- `--compile-only` — skip running the tools; compile from whatever artifacts are
+  already on disk. **Zero side effects.** Used for layout iteration and for
+  re-rendering after a manual tool run.
+- `--dry-run` — print the planned tool order and the live `pgrep` pre-check
+  state (clear / BUSY) for each, but execute nothing; then compile on-disk
+  artifacts for a preview.
+- `--stdout` — print the report to stdout in addition to writing it.
+
+### Exit codes
+
+- `0` — report fully fresh and complete.
+- `1` — one or more issues (banner present); report still written.
+
+### Configuration
+
+Source artifact locations default to where IRA Guard and cc2 write today and can
+be overridden via an optional `ccoption:` block in `config/qsa.yaml` (see that
+file's comments). No config edit is required to run.
+
+### Examples
+
+```bash
+qsa ccoption                 # live refresh + compile (default)
+qsa ccoption --dry-run       # show plan + process pre-checks, run nothing
+qsa ccoption --compile-only  # recompile from on-disk artifacts, no side effects
+```
+
 ## Report layout
 
 Generated reports group findings in this order:

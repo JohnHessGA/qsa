@@ -56,6 +56,14 @@ def test_demote_drops_headers_one_level():
     assert cc._demote("## H\ntext\n### sub") == "### H\ntext\n#### sub"
 
 
+def test_demote_and_label_tags_only_the_section_header():
+    out = cc._demote_and_label("## Recommendations (0) — x\ntext\n### sub", "cc2")
+    lines = out.splitlines()
+    assert lines[0] == "### cc2 — Recommendations (0) — x"  # demoted + tagged
+    assert lines[1] == "text"
+    assert lines[2] == "#### sub"                            # demoted, not tagged
+
+
 # --- process backoff -------------------------------------------------------
 
 def test_wait_for_clear_returns_none_when_clear():

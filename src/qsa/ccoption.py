@@ -37,6 +37,7 @@ from qsa.config import load_app_config
 class SourceSpec:
     key: str          # internal id used by the group layout
     label: str        # human label shown in the Sources table
+    tool: str         # short source-tool tag prefixed onto embedded headers
     root: Path        # directory tree to search (recursively)
     glob: str         # filename glob identifying this tool's artifacts
 
@@ -45,18 +46,21 @@ DEFAULT_SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         key="cc2",
         label="cc2 phase 2",
+        tool="cc2",
         root=Path("/mnt/aftdata/cc2/artifacts"),
         glob="cc2_phase2_options_*.md",
     ),
     SourceSpec(
         key="iraguard_ccoptions",
         label="IRA Guard ccoptions",
+        tool="iraguard",
         root=Path("/mnt/aftdata/iraguard/artifacts/ccoptions"),
         glob="ccoptions-*.md",
     ),
     SourceSpec(
         key="iraguard_standing",
         label="IRA Guard standing",
+        tool="iraguard",
         root=Path("/mnt/aftdata/iraguard/artifacts/standing"),
         glob="iraguard-standing-*.md",
     ),
@@ -103,6 +107,7 @@ def _load_sources() -> tuple[SourceSpec, ...]:
         out.append(SourceSpec(
             key=spec.key,
             label=ov.get("label", spec.label),
+            tool=ov.get("tool", spec.tool),
             root=Path(str(ov.get("root", spec.root))).expanduser(),
             glob=ov.get("glob", spec.glob),
         ))
@@ -162,6 +167,24 @@ def _demote(block: str) -> str:
         ("#" + line) if line.startswith("##") else line
         for line in block.splitlines()
     )
+
+
+def _demote_and_label(block: str, tool: str) -> str:
+    """Demote headers one level and tag the section's own header with its
+    source tool, so a reader can tell which tool produced it — e.g.
+    ``## Recommendations …`` -> ``### cc2 — Recommendations …``.
+
+    Only the section's leading header is tagged; demoted sub-headers are left
+    as-is.
+    """
+    demoted = _demote(block)
+    lines = demoted.splitlines()
+    for i, line in enumerate(lines):
+        m = re.match(r"^(#+\s+)(.*)$", line)
+        if m:
+            lines[i] = f"{m.group(1)}{tool} — {m.group(2)}"
+            break
+    return "\n".join(lines)
 
 
 def load_sources(
@@ -270,7 +293,7 @@ def render_report(
                 body.append("")
                 problems.append(f"{label} / {prefix}: section not found")
                 continue
-            body.append(_demote(block))
+            body.append(_demote_and_label(block, ls.spec.tool))
             body.append("")
 
     # Title + (optional) failure banner + body.

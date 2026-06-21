@@ -113,6 +113,10 @@ qsa ccoption
    - IRA Guard standing → `Open Orders`, `Options in Play`, `Options Available`
    - and assemble them under: *Write candidates today · Already in play ·
      Writable shares · Cash available · Open stock/ETF orders*.
+   - Each embedded section header is tagged with its source tool, e.g.
+     `### cc2 — Recommendations …` / `### iraguard — Suggestions …`, so the
+     mixed *Write candidates today* group is unambiguous about which tool
+     produced each table.
 4. **Freshness assertion** — every consumed artifact is checked against the run
    start time and tagged in the Sources table: 🟢 fresh / 🟡 STALE / 🔴 missing.
 

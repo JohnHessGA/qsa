@@ -117,6 +117,11 @@ qsa ccoption
      `### cc2 — Recommendations …` / `### iraguard — Suggestions …`, so the
      mixed *Write candidates today* group is unambiguous about which tool
      produced each table.
+   - The IRA Guard `Suggestions` slice carries an `m` marker before any
+     **monthly-only** underlying (no weekly options → write/roll only monthly);
+     its legend lives inside that section, so the marker stays self-documenting
+     in this consolidated report. No qsa change was needed for this — the slice
+     is lossless.
 4. **Freshness assertion** — every consumed artifact is checked against the run
    start time and tagged in the Sources table: 🟢 fresh / 🟡 STALE / 🔴 missing.
 
